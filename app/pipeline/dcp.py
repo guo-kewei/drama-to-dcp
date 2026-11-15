@@ -11,6 +11,7 @@ from ..core.naming import isdcf_preview
 from ..core.task import CONTAINERS, TaskState
 from ..engines import LAYOUT_CHANNELS
 from ..tools.dcpomatic import DCPoMatic
+from . import provenance
 
 ProgressFn = Callable[[float], None]
 
@@ -109,4 +110,14 @@ def build_dcp(dom: DCPoMatic, state: TaskState,
     if target.exists():
         target = out_dir / f"{cfg.dcp_name}_{time.strftime('%H%M%S')}"
     shutil.move(str(dcp), str(target))
+
+    # 溯源标记：CPL 注入 Creator（同步修正 PKL 哈希与 ASSETMAP 长度）
+    from .. import __version__
+    try:
+        mark = provenance.add_creator_marker(target, f"Drama2DCP v{__version__}")
+        if log:
+            log(f"溯源标记: {mark}")
+    except Exception as e:
+        if log:
+            log(f"⚠ 溯源标记失败（不影响 DCP 有效性）: {e}")
     return target

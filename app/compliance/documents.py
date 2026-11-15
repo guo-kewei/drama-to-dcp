@@ -130,6 +130,9 @@ def inspect_dcp(dcp_dir: Path) -> dict:
             return [(el.text or "").strip() for el in root_xml.iter()
                     if el.tag.split("}")[-1] == tag]
         info["CPL 名称"] = (texts("ContentTitleText") or ["—"])[0]
+        creator = (texts("Creator") or [""])[0]
+        if creator:
+            info["溯源（Creator）"] = creator
         info["画幅（SAR）"] = (texts("ScreenAspectRatio") or ["—"])[0]
         info["帧率"] = (texts("FrameRate") or ["—"])[0]
         dur = texts("Duration")

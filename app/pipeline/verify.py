@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 from ..core.task import TaskState, container_size
+from .provenance import get_creator
 
 
 def _expected_sar(state: TaskState) -> str:
@@ -86,6 +87,10 @@ def verify_dcp(dcp_dir: Path, state: TaskState) -> tuple[bool, list[str], dict]:
         want = "8" if state.config.audio_layout == "7.1" else "6"
         if ch[0] != want:
             problems.append(f"CPL 声道数 {ch[0]}，预期 {want}")
+
+    creator = texts("Creator")
+    if creator:
+        info["creator"] = creator[0]          # 溯源标记（本平台产物）
 
     dur = texts("Duration")
     if dur and state.expected_total > 0:

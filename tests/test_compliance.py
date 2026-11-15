@@ -129,5 +129,61 @@ class TestDocuments(unittest.TestCase):
             self.assertTrue(out.is_file() and out.stat().st_size > 4000)
 
 
+
+
+class TestProvenance(unittest.TestCase):
+    """CPL 溯源标记 + PKL/ASSETMAP 同步修正。"""
+
+    def _mk(self, tmp: Path) -> Path:
+        d = tmp / "TEST_FTR-1_F_XX-XX_51_2K_20261115_SMPTE_OV"
+        d.mkdir()
+        cpl = ('<?xml version="1.0" encoding="UTF-8"?>'
+               '<CompositionPlaylist xmlns="http://www.smpte-ra.org/schemas/429/2008/CPL">'
+               '<Id>urn:uuid:1</Id><ContentTitleText>T</ContentTitleText>'
+               '<ReelList><Reel><AssetList>'
+               '<MainPicture><ScreenAspectRatio>1998 1080</ScreenAspectRatio>'
+               '<Duration>24</Duration></MainPicture>'
+               '</AssetList></Reel></ReelList></CompositionPlaylist>')
+        (d / "cpl_a.xml").write_text(cpl, encoding="utf-8")
+        (d / "pkl_a.xml").write_text(
+            '<?xml version="1.0" encoding="UTF-8"?><PackingList>'
+            '<Asset><Id>urn:uuid:1</Id><Hash>OLD==</Hash><Size>9</Size>'
+            '<Type>text/xml</Type>'
+            '<OriginalFilename>cpl_a.xml</OriginalFilename></Asset>'
+            '<Asset><Id>urn:uuid:2</Id><Hash>OTHER==</Hash><Size>5</Size>'
+            '<Type>application/mxf</Type>'
+            '<OriginalFilename>j2c_b.mxf</OriginalFilename></Asset>'
+            '</PackingList>', encoding="utf-8")
+        (d / "ASSETMAP.xml").write_text(
+            '<?xml version="1.0" encoding="UTF-8"?><AssetMap>'
+            '<Asset><Id>urn:uuid:1</Id><Chunk><Path>cpl_a.xml</Path>'
+            '<Length>9</Length></Chunk></Asset>'
+            '</AssetMap>', encoding="utf-8")
+        return d
+
+    def test_marker_and_sync(self):
+        import base64
+        import hashlib
+        import tempfile
+        from app.pipeline.provenance import add_creator_marker, get_creator
+        with tempfile.TemporaryDirectory() as td:
+            d = self._mk(Path(td))
+            r = add_creator_marker(d, "Drama2DCP v0.1.0")
+            self.assertTrue(r["done"])
+            self.assertEqual(get_creator(d), "Drama2DCP v0.1.0")
+            data = (d / "cpl_a.xml").read_bytes()
+            want = base64.b64encode(hashlib.sha1(data).digest()).decode()
+            self.assertEqual(r["hash"], want)
+            self.assertEqual(r["size"], len(data))
+            pkl = (d / "pkl_a.xml").read_text(encoding="utf-8")
+            self.assertIn(want, pkl)
+            self.assertNotIn("OLD==", pkl)
+            self.assertIn("OTHER==", pkl)          # 其他资产的哈希不被误改
+            amap = (d / "ASSETMAP.xml").read_text(encoding="utf-8")
+            self.assertIn(f"<Length>{len(data)}</Length>", amap)
+            r2 = add_creator_marker(d, "Drama2DCP v0.1.0")
+            self.assertFalse(r2["done"])           # 幂等
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
