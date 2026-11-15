@@ -1,0 +1,25 @@
+# ===== 大文件/生成物（绝不入库）=====
+tests/media/
+tests/tmp_review/
+备案/
+output/
+DCP输出/
+
+# FFmpeg 便携版与安装包（用户按 README 自行安装）
+tools/ffmpeg-*
+tools/downloads/
+
+# 构建产物与运行时配置
+短剧转电影平台.exe
+*.spec.bak
+build/
+dist/
+config.json
+__pycache__/
+*.pyc
+*.log
+
+# 系统
+Thumbs.db
+.DS_Store
+.zcode/

@@ -1,0 +1,8 @@
+# v1 转换管线为纯标准库；界面与合规工作台依赖：
+PySide6>=6.6
+# DCP 名称中文转拼音（缺失时回落 UNTITLED）：
+pypinyin>=0.50
+# 备案材料 docx 生成：
+python-docx>=1.1
+# 完成台本转录（中文优先；缺失时自动回落 faster-whisper，需 hf-mirror）：
+funasr>=1.1
